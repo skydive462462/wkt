@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>PulseFit • Pro Workout Monitor</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#090d16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PulseFit">
+  <meta name="application-name" content="PulseFit">
+  <meta name="description" content="Sleek, high-performance offline workout monitor and exercise tracker.">
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            dark: {
+              bg: '#090d16',
+              card: '#111827',
+              surface: '#161f30',
+              border: '#1f293d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbar & glass blur */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #27354f; border-radius: 9999px; }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glow-indigo {
+      box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.25);
+    }
+  </style>
+</head>
+<body class="bg-dark-bg text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white pb-20">
+
+  <!-- Top App Navigation -->
+  <header class="sticky top-0 z-40 bg-dark-bg/80 backdrop-blur-md border-b border-dark-border px-4 py-3.5">
+    <div class="max-w-2xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-black text-lg">
+          ⚡
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-base sm:text-lg tracking-tight text-white">PulseFit</h1>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-widest">PWA</span>
+          </div>
+          <p id="currentDateDisplay" class="text-xs text-slate-400">Today's Session</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="pwaHelpBtn" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-dark-surface hover:bg-slate-800 text-slate-300 border border-dark-border transition flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span class="hidden sm:inline">Install App</span>
+        </button>
+        <button id="clearAllBtn" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition">
+          Reset Log
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 py-5 space-y-5">
+
+    <!-- KPI Metric Cards -->
+    <section class="grid grid-cols-3 gap-2.5 sm:gap-3">
+      <div class="glass-card rounded-2xl p-3.5 sm:p-4 relative overflow-hidden">
+        <div class="absolute -right-2 -bottom-2 w-12 h-12 bg-indigo-500/5 rounded-full blur-xl pointer-events-none"></div>
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Exercises</span>
+        <div class="flex items-baseline gap-1 mt-1">
+          <span id="statExercises" class="text-2xl sm:text-3xl font-extrabold text-white">0</span>
+          <span class="text-[10px] text-slate-400 font-medium">moves</span>
+        </div>
+        <div class="mt-2 w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+          <div id="exerciseProgressBar" class="bg-indigo-500 h-full rounded-full transition-all duration-500" style="width: 30%"></div>
+        </div>
+      </div>
+
+      <div class="glass-card rounded-2xl p-3.5 sm:p-4 relative overflow-hidden">
+        <div class="absolute -right-2 -bottom-2 w-12 h-12 bg-emerald-500/5 rounded-full blur-xl pointer-events-none"></div>
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Sets</span>
+        <div class="flex items-baseline gap-1 mt-1">
+          <span id="statSets" class="text-2xl sm:text-3xl font-extrabold text-emerald-400">0</span>
+          <span class="text-[10px] text-slate-400 font-medium">sets</span>
+        </div>
+        <div class="mt-2 w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+          <div id="setsProgressBar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 50%"></div>
+        </div>
+      </div>
+
+      <div class="glass-card rounded-2xl p-3.5 sm:p-4 relative overflow-hidden">
+        <div class="absolute -right-2 -bottom-2 w-12 h-12 bg-amber-500/5 rounded-full blur-xl pointer-events-none"></div>
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Volume</span>
+        <div class="flex items-baseline gap-1 mt-1">
+          <span id="statReps" class="text-2xl sm:text-3xl font-extrabold text-amber-400">0</span>
+          <span class="text-[10px] text-slate-400 font-medium">reps</span>
+        </div>
+        <div class="mt-2 w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+          <div id="repsProgressBar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 70%"></div>
+        </div>
+      </section>
+
+    <!-- Rest Timer Widget (Built-in Audio/Visual) -->
+    <section class="glass-card rounded-2xl p-4 border border-dark-border">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-sm">
+            ⏱
+          </div>
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Rest Timer</h3>
+            <p id="timerStatus" class="text-[11px] text-slate-400">Ready for next set</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span id="timerDisplay" class="font-mono text-2xl font-black text-indigo-400 tracking-wider">00:00</span>
+          <div class="flex items-center gap-1.5">
+            <button id="quick30Btn" class="text-[11px] font-semibold px-2 py-1 rounded bg-dark-surface hover:bg-slate-800 text-slate-300 border border-dark-border transition">+30s</button>
+            <button id="quick60Btn" class="text-[11px] font-semibold px-2 py-1 rounded bg-dark-surface hover:bg-slate-800 text-slate-300 border border-dark-border transition">+60s</button>
+            <button id="timerToggleBtn" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition">Start</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Logging Card -->
+    <section class="glass-card rounded-2xl p-5 border border-dark-border glow-indigo">
+      <div class="flex items-center justify-between mb-3.5">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+          <span>Log Movement</span>
+        </h2>
+        <span class="text-xs text-brand-400 font-medium">Quick Select 👇</span>
+      </div>
+
+      <!-- Quick Pick Chips -->
+      <div class="mb-4 overflow-x-auto pb-1" id="quickChips">
+        <div class="flex gap-1.5">
+          <button type="button" class="chip-btn shrink-0 text-xs font-medium bg-dark-surface hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-xl border border-dark-border transition flex items-center gap-1.5" data-name="Push-ups" data-category="Strength" data-sets="4" data-reps="10" data-weight="60kg">
+            Push-ups
+          </button>
+          <button type="button" class="chip-btn shrink-0 text-xs font-medium bg-dark-surface hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-xl border border-dark-border transition flex items-center gap-1.5" data-name="Squats" data-category="Strength" data-sets="4" data-reps="8" data-weight="80kg">
+            Squats
+          </button>
+          <button type="button" class="chip-btn shrink-0 text-xs font-medium bg-dark-surface hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-xl border border-dark-border transition flex items-center gap-1.5" data-name="Pull-ups" data-category="Strength" data-sets="3" data-reps="10" data-weight="Bodyweight">
+            Pull-ups
+          </button>
+          <button type="button" class="chip-btn shrink-0 text-xs font-medium bg-dark-surface hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-xl border border-dark-border transition flex items-center gap-1.5" data-name="Plank Hold" data-category="Core" data-sets="3" data-reps="60" data-weight="Secs">
+            Plank
+          </button>
+          <button type="button" class="chip-btn shrink-0 text-xs font-medium bg-dark-surface hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-xl border border-dark-border transition flex items-center gap-1.5" data-name="Running" data-category="Cardio" data-sets="1" data-reps="25" data-weight="Mins">
+            Running
+          </button>
+        </div>
+      </div>
+
+      <form id="workoutForm" class="space-y-3.5">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label for="exerciseInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Exercise Title</label>
+            <input id="exerciseInput" type="text" required placeholder="e.g. Incline Dumbbell Press" class="w-full px-3.5 py-2.5 bg-dark-bg/90 border border-dark-border rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+          </div>
+          <div>
+            <label for="categoryInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Category</label>
+            <select id="categoryInput" class="w-full px-3.5 py-2.5 bg-dark-bg/90 border border-dark-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition cursor-pointer">
+              <option value="Strength">Strength</option>
+              <option value="Cardio">Cardio</option>
+              <option value="Core">Core</option>
+              <option value="Mobility">Mobility</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
+          <div>
+            <label for="setsInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Sets</label>
+            <input id="setsInput" type="number" min="1" placeholder="3" class="w-full px-3.5 py-2 bg-dark-bg/90 border border-dark-border rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+          </div>
+          <div>
+            <label for="repsInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Reps / Time</label>
+            <input id="repsInput" type="number" min="1" placeholder="12" class="w-full px-3.5 py-2 bg-dark-bg/90 border border-dark-border rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+          </div>
+          <div>
+            <label for="weightInput" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Load / Notes</label>
+            <input id="weightInput" type="text" placeholder="e.g. 50 kg" class="w-full px-3.5 py-2 bg-dark-bg/90 border border-dark-border rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold py-3 px-4 rounded-xl text-sm transition shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 active:scale-[0.99]">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+          <span>+ Add to Workout Log</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- Workout History Section -->
+    <section class="glass-card rounded-2xl p-5 border border-dark-border">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-200">Session Activity</h2>
+          <p class="text-xs text-slate-400">Logged exercises stay saved in your device's storage</p>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="flex gap-1 overflow-x-auto pb-1 sm:pb-0" id="filterTabs">
+          <button type="button" class="filter-btn text-xs font-semibold px-2.5 py-1 rounded-lg bg-brand-500/20 text-brand-300 border border-brand-500/30" data-filter="All">All</button>
+          <button type="button" class="filter-btn text-xs font-medium px-2.5 py-1 rounded-lg text-slate-400 hover:bg-slate-800" data-filter="Strength">Strength</button>
+          <button type="button" class="filter-btn text-xs font-medium px-2.5 py-1 rounded-lg text-slate-400 hover:bg-slate-800" data-filter="Cardio">Cardio</button>
+          <button type="button" class="filter-btn text-xs font-medium px-2.5 py-1 rounded-lg text-slate-400 hover:bg-slate-800" data-filter="Core">Core</button>
+          <button type="button" class="filter-btn text-xs font-medium px-2.5 py-1 rounded-lg text-slate-400 hover:bg-slate-800" data-filter="Mobility">Mobility</button>
+        </div>
+      </div>
+
+      <ul id="workoutList" class="space-y-2.5">
+        <!-- Injected via JavaScript -->
+      </ul>
+
+      <!-- Export summary action -->
+      <div class="mt-4 pt-4 border-t border-dark-border/80 flex items-center justify-between text-xs">
+        <span class="text-slate-400">Offline-ready PWA cache active</span>
+        <button id="copySummaryBtn" class="text-brand-400 hover:text-brand-300 font-medium flex items-center gap-1 transition">
+          <span>📋 Copy Workout Summary</span>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- PWA Install Modal -->
+  <div id="pwaModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-card bg-dark-card rounded-2xl p-6 max-w-md w-full border border-dark-border shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center text-white font-bold text-lg">
+            📱
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Install as an App (PWA)</h3>
+            <p class="text-xs text-slate-400">Fast, offline, and no app store needed</p>
+          </div>
+        </div>
+        <button id="closePwaModalBtn" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs text-slate-300 mb-6">
+        <div class="p-3 bg-dark-bg/80 rounded-xl border border-dark-border">
+          <p class="font-bold text-white mb-1">On Android (Chrome / Brave / Edge):</p>
+          <p class="text-slate-400">Tap the three-dot menu (<span class="font-bold text-white">⋮</span>) at the top right, then select <span class="text-brand-400 font-semibold">"Install app"</span> or <span class="text-brand-400 font-semibold">"Add to Home screen"</span>.</p>
+        </div>
+        <div class="p-3 bg-dark-bg/80 rounded-xl border border-dark-border">
+          <p class="font-bold text-white mb-1">On iPhone / iPad (Safari):</p>
+          <p class="text-slate-400">Tap the Share icon (<span class="font-bold text-white">⎋</span>) at the bottom, scroll down, and tap <span class="text-brand-400 font-semibold">"Add to Home Screen"</span>.</p>
+        </div>
+      </div>
+
+      <button id="gotItPwaBtn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition">
+        Got it!
+      </button>
+    </div>
+  </div>
+
+  <!-- In-page Reset Confirmation Modal -->
+  <div id="resetModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-card bg-dark-card rounded-2xl p-6 max-w-sm w-full border border-dark-border shadow-2xl text-center">
+      <div class="w-12 h-12 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-xl">
+        ⚠️
+      </div>
+      <h3 class="text-base font-bold text-white mb-1">Clear all workouts?</h3>
+      <p class="text-xs text-slate-400 mb-6">This will delete all logged exercises from today's session. This cannot be undone.</p>
+      <div class="flex gap-2.5">
+        <button id="cancelResetBtn" class="flex-1 py-2.5 px-4 rounded-xl border border-dark-border bg-dark-surface text-slate-300 text-xs font-bold hover:bg-slate-800 transition">Cancel</button>
+        <button id="confirmResetBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition">Yes, Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-brand-500/40 text-brand-300 px-4 py-2 rounded-xl text-xs font-semibold shadow-xl transition-all duration-300 opacity-0 pointer-events-none z-50">
+    Summary copied to clipboard!
+  </div>
+
+  <script>
+    // State management
+    let workouts = [];
+    let activeFilter = 'All';
+
+    // Timer state
+    let timerSeconds = 0;
+    let timerInterval = null;
+    let isTimerRunning = false;
+
+    // DOM Elements
+    const workoutForm = document.getElementById('workoutForm');
+    const exerciseInput = document.getElementById('exerciseInput');
+    const categoryInput = document.getElementById('categoryInput');
+    const setsInput = document.getElementById('setsInput');
+    const repsInput = document.getElementById('repsInput');
+    const weightInput = document.getElementById('weightInput');
+    const workoutList = document.getElementById('workoutList');
+    const statExercises = document.getElementById('statExercises');
+    const statSets = document.getElementById('statSets');
+    const statReps = document.getElementById('statReps');
+    const exerciseProgressBar = document.getElementById('exerciseProgressBar');
+    const setsProgressBar = document.getElementById('setsProgressBar');
+    const repsProgressBar = document.getElementById('repsProgressBar');
+    const quickChips = document.getElementById('quickChips');
+    const filterTabs = document.getElementById('filterTabs');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const resetModal = document.getElementById('resetModal');
+    const cancelResetBtn = document.getElementById('cancelResetBtn');
+    const confirmResetBtn = document.getElementById('confirmResetBtn');
+    const pwaHelpBtn = document.getElementById('pwaHelpBtn');
+    const pwaModal = document.getElementById('pwaModal');
+    const closePwaModalBtn = document.getElementById('closePwaModalBtn');
+    const gotItPwaBtn = document.getElementById('gotItPwaBtn');
+    const copySummaryBtn = document.getElementById('copySummaryBtn');
+    const toast = document.getElementById('toast');
+    const currentDateDisplay = document.getElementById('currentDateDisplay');
+
+    // Timer DOM
+    const timerDisplay = document.getElementById('timerDisplay');
+    const timerStatus = document.getElementById('timerStatus');
+    const timerToggleBtn = document.getElementById('timerToggleBtn');
+    const quick30Btn = document.getElementById('quick30Btn');
+    const quick60Btn = document.getElementById('quick60Btn');
+
+    // Set formatted date
+    function setDateHeader() {
+      const options = { weekday: 'short', month: 'short', day: 'numeric' };
+      currentDateDisplay.textContent = new Date().toLocaleDateString(undefined, options);
+    }
+
+    // Safe LocalStorage
+    function loadWorkouts() {
+      try {
+        const stored = localStorage.getItem('pulsefit_workout_data');
+        if (stored) {
+          workouts = JSON.parse(stored);
+        } else {
+          // Pre-populate with realistic starter data
+          workouts = [
+            { id: 1, name: 'Barbell Bench Press', category: 'Strength', sets: 4, reps: 10, weight: '70 kg', time: '07:15 AM' },
+            { id: 2, name: 'Incline Dumbbell Flyes', category: 'Strength', sets: 3, reps: 12, weight: '18 kg', time: '07:32 AM' },
+            { id: 3, name: 'Hanging Leg Raises', category: 'Core', sets: 3, reps: 15, weight: 'Bodyweight', time: '07:48 AM' }
+          ];
+          saveWorkouts();
+        }
+      } catch (e) {
+        workouts = [];
+      }
+    }
+
+    function saveWorkouts() {
+      try {
+        localStorage.setItem('pulsefit_workout_data', JSON.stringify(workouts));
+      } catch (e) {
+        console.warn('Storage unavailable', e);
+      }
+    }
+
+    // Badge styling per category
+    function getCategoryBadge(category) {
+      switch (category) {
+        case 'Strength':
+          return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+        case 'Cardio':
+          return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+        case 'Core':
+          return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+        case 'Mobility':
+          return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        default:
+          return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+      }
+    }
+
+    // Audio chime using Web Audio API on click/event (safe for Canvas)
+    function playRestChime() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.6);
+      } catch (e) {
+        // AudioContext disabled or blocked
+      }
+    }
+
+    // Timer controls
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function updateTimerUI() {
+      timerDisplay.textContent = formatTime(timerSeconds);
+    }
+
+    function startTimer(seconds) {
+      if (timerInterval) clearInterval(timerInterval);
+      timerSeconds = seconds;
+      isTimerRunning = true;
+      timerToggleBtn.textContent = 'Pause';
+      timerToggleBtn.className = 'text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white transition';
+      timerStatus.textContent = 'Resting...';
+      updateTimerUI();
+
+      timerInterval = setInterval(() => {
+        if (timerSeconds > 0) {
+          timerSeconds--;
+          updateTimerUI();
+          if (timerSeconds === 0) {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            timerToggleBtn.textContent = 'Start';
+            timerToggleBtn.className = 'text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition';
+            timerStatus.textContent = 'Rest Complete! Time for next set';
+            playRestChime();
+            showToast('⏰ Rest period finished!');
+          }
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      clearInterval(timerInterval);
+      isTimerRunning = false;
+      timerToggleBtn.textContent = 'Resume';
+      timerToggleBtn.className = 'text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition';
+      timerStatus.textContent = 'Timer paused';
+    }
+
+    timerToggleBtn.addEventListener('click', () => {
+      if (isTimerRunning) {
+        pauseTimer();
+      } else {
+        if (timerSeconds === 0) timerSeconds = 60;
+        startTimer(timerSeconds);
+      }
+    });
+
+    quick30Btn.addEventListener('click', () => {
+      startTimer(30);
+    });
+
+    quick60Btn.addEventListener('click', () => {
+      startTimer(60);
+    });
+
+    // Update Stats & Progress Bars
+    function updateStats() {
+      statExercises.textContent = workouts.length;
+      const totalSets = workouts.reduce((sum, item) => sum + (parseInt(item.sets) || 0), 0);
+      const totalReps = workouts.reduce((sum, item) => sum + ((parseInt(item.sets) || 1) * (parseInt(item.reps) || 0)), 0);
+
+      statSets.textContent = totalSets;
+      statReps.textContent = totalReps;
+
+      // Dynamic progress bar scaling
+      exerciseProgressBar.style.width = `${Math.min(100, workouts.length * 20)}%`;
+      setsProgressBar.style.width = `${Math.min(100, totalSets * 6)}%`;
+      repsProgressBar.style.width = `${Math.min(100, totalReps * 1.5)}%`;
+    }
+
+    // Render Workout List
+    function renderList() {
+      workoutList.innerHTML = '';
+
+      const filtered = activeFilter === 'All' 
+        ? workouts 
+        : workouts.filter(w => w.category === activeFilter);
+
+      if (filtered.length === 0) {
+        workoutList.innerHTML = `
+          <li class="py-10 text-center bg-dark-bg/40 rounded-2xl border border-dashed border-dark-border">
+            <span class="text-3xl block mb-2 opacity-50">🏋️‍♂️</span>
+            <p class="text-sm font-semibold text-slate-300">No ${activeFilter !== 'All' ? activeFilter.toLowerCase() : ''} workouts logged</p>
+            <p class="text-xs text-slate-500 mt-1">Tap a quick pick above or fill out the form to add your first set.</p>
+          </li>
+        `;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'group flex items-center justify-between p-3.5 bg-dark-bg/60 hover:bg-dark-surface/80 border border-dark-border rounded-xl transition duration-200';
+
+        const badgeClass = getCategoryBadge(item.category);
+
+        let details = [];
+        if (item.sets) details.push(`<span class="font-bold text-white">${item.sets}</span> sets`);
+        if (item.reps) details.push(`<span class="font-bold text-white">${item.reps}</span> reps`);
+        if (item.weight) details.push(`<span class="text-indigo-400 font-semibold">${item.weight}</span>`);
+        const detailsString = details.join(' • ');
+
+        li.innerHTML = `
+          <div class="flex items-start gap-3 min-w-0">
+            <div class="mt-0.5">
+              <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${badgeClass}">
+                ${item.category}
+              </span>
+            </div>
+            <div class="min-w-0">
+              <h4 class="text-sm font-bold text-slate-100 truncate">${item.name}</h4>
+              <p class="text-xs text-slate-400 mt-0.5">${detailsString || 'Logged'}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 shrink-0 ml-3">
+            <span class="text-[11px] font-medium text-slate-400 hidden sm:inline">${item.time || ''}</span>
+            <button class="delete-btn text-slate-400 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/10 transition" title="Delete set" data-id="${item.id}">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        `;
+
+        workoutList.appendChild(li);
+      });
+    }
+
+    function refreshUI() {
+      updateStats();
+      renderList();
+    }
+
+    // Add Workout handler
+    workoutForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const name = exerciseInput.value.trim();
+      if (!name) return;
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const newEntry = {
+        id: Date.now(),
+        name: name,
+        category: categoryInput.value,
+        sets: setsInput.value ? parseInt(setsInput.value) : '',
+        reps: repsInput.value ? parseInt(repsInput.value) : '',
+        weight: weightInput.value.trim(),
+        time: timeStr
+      };
+
+      workouts.unshift(newEntry);
+      saveWorkouts();
+      refreshUI();
+
+      // Trigger automatic rest timer (60s)
+      startTimer(60);
+      showToast(`Logged ${name}! Rest timer started.`);
+
+      // Reset form
+      workoutForm.reset();
+      exerciseInput.focus();
+    });
+
+    // Delete item via event delegation
+    workoutList.addEventListener('click', (e) => {
+      const deleteBtn = e.target.closest('.delete-btn');
+      if (deleteBtn) {
+        const id = Number(deleteBtn.dataset.id);
+        workouts = workouts.filter(w => w.id !== id);
+        saveWorkouts();
+        refreshUI();
+        showToast('Workout entry removed.');
+      }
+    });
+
+    // Quick chips
+    quickChips.addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip-btn');
+      if (chip) {
+        exerciseInput.value = chip.dataset.name;
+        categoryInput.value = chip.dataset.category;
+        setsInput.value = chip.dataset.sets || '';
+        repsInput.value = chip.dataset.reps || '';
+        weightInput.value = chip.dataset.weight || '';
+        setsInput.focus();
+      }
+    });
+
+    // Category filter tabs
+    filterTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.filter-btn');
+      if (btn) {
+        activeFilter = btn.dataset.filter;
+        
+        document.querySelectorAll('.filter-btn').forEach(b => {
+          b.className = 'filter-btn text-xs font-medium px-2.5 py-1 rounded-lg text-slate-400 hover:bg-slate-800 transition';
+        });
+        btn.className = 'filter-btn text-xs font-semibold px-2.5 py-1 rounded-lg bg-brand-500/20 text-brand-300 border border-brand-500/30 transition';
+
+        renderList();
+      }
+    });
+
+    // Toast helper
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2400);
+    }
+
+    // Copy Summary to Clipboard
+    copySummaryBtn.addEventListener('click', () => {
+      if (workouts.length === 0) {
+        showToast('No workouts to copy.');
+        return;
+      }
+      let summary = `PulseFit Workout Log (${currentDateDisplay.textContent})\n`;
+      summary += `Total Exercises: ${workouts.length} | Sets: ${statSets.textContent} | Reps: ${statReps.textContent}\n\n`;
+      workouts.forEach((w, i) => {
+        summary += `${i + 1}. ${w.name} [${w.category}] - ${w.sets} sets x ${w.reps} reps ${w.weight ? '(' + w.weight + ')' : ''} @ ${w.time}\n`;
+      });
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(summary).then(() => {
+          showToast('Workout summary copied to clipboard!');
+        }).catch(() => {
+          fallbackCopy(summary);
+        });
+      } else {
+        fallbackCopy(summary);
+      }
+    });
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('Workout summary copied to clipboard!');
+      } catch (e) {
+        showToast('Unable to copy automatically.');
+      }
+      document.body.removeChild(ta);
+    }
+
+    // Reset log confirmation modal
+    clearAllBtn.addEventListener('click', () => {
+      resetModal.classList.remove('hidden');
+    });
+
+    cancelResetBtn.addEventListener('click', () => {
+      resetModal.classList.add('hidden');
+    });
+
+    confirmResetBtn.addEventListener('click', () => {
+      workouts = [];
+      saveWorkouts();
+      refreshUI();
+      resetModal.classList.add('hidden');
+      showToast('All workouts cleared.');
+    });
+
+    resetModal.addEventListener('click', (e) => {
+      if (e.target === resetModal) {
+        resetModal.classList.add('hidden');
+      }
+    });
+
+    // PWA Modal
+    pwaHelpBtn.addEventListener('click', () => {
+      pwaModal.classList.remove('hidden');
+    });
+
+    closePwaModalBtn.addEventListener('click', () => {
+      pwaModal.classList.add('hidden');
+    });
+
+    gotItPwaBtn.addEventListener('click', () => {
+      pwaModal.classList.add('hidden');
+    });
+
+    pwaModal.addEventListener('click', (e) => {
+      if (e.target === pwaModal) {
+        pwaModal.classList.add('hidden');
+      }
+    });
+
+    
+    // Service Worker Registration for PWA offline support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('PulseFit PWA Service Worker registered:', reg.scope))
+          .catch((err) => console.log('Service Worker registration skipped (normal in local file preview):', err));
+      });
+    }
+
+    // Init
+    setDateHeader();
+    loadWorkouts();
+    refreshUI();
+  </script>
+</body>
+</html>
